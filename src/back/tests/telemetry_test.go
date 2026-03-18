@@ -64,8 +64,37 @@ func TestIngestTelemetry_Success(t *testing.T) {
 
 // ❌ JSON inválido
 func TestIngestTelemetry_InvalidJSON(t *testing.T) {
-	// TODO: enviar JSON quebrado
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id":
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedMessage := "Payload inválido"
+	if response["error"] != expectedMessage {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedMessage, response["error"])
+	}
 }
 
 // ❌ device_id inválido
