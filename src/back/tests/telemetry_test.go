@@ -143,20 +143,134 @@ func TestIngestTelemetry_InvalidDeviceID(t *testing.T) {
 
 // ❌ sensor.type vazio
 func TestIngestTelemetry_EmptySensorType(t *testing.T) {
-	// TODO: sensor.type = ""
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "2026-03-17T14:30:00Z",
+		"sensor": {
+			"type": "",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedError := "sensor.type é obrigatório"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
+	}
 }
 
 // ❌ sensor.unit vazio
 func TestIngestTelemetry_EmptySensorUnit(t *testing.T) {
-	// TODO: sensor.unit = ""
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "2026-03-17T14:30:00Z",
+		"sensor": {
+			"type": "temperature",
+			"unit": ""
+		},
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedError := "sensor.unit é obrigatório"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
+	}
 }
 
 // ❌ reading.value_type vazio
 func TestIngestTelemetry_EmptyValueType(t *testing.T) {
-	// TODO: value_type = ""
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "2026-03-17T14:30:00Z",
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "",
+			"value": 23.7
+		}
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedError := "reading.value_type é obrigatório"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
+	}
 }
 
 // ❌ timestamp ausente ou inválido
