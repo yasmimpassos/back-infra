@@ -91,16 +91,54 @@ func TestIngestTelemetry_InvalidJSON(t *testing.T) {
 		t.Fatalf("erro ao fazer parse do JSON: %v", err)
 	}
 
-	expectedMessage := "Payload inválido"
-	if response["error"] != expectedMessage {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedMessage, response["error"])
+	expectedError := "Payload inválido"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
 	}
 }
 
 // ❌ device_id inválido
 func TestIngestTelemetry_InvalidDeviceID(t *testing.T) {
-	// TODO: device_id = 0
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 0,
+		"timestamp": "2026-03-17T14:30:00Z",
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedError := "device_id é obrigatório"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
+	}
 }
 
 // ❌ sensor.type vazio
