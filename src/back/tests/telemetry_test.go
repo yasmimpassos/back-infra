@@ -415,8 +415,46 @@ func TestIngestTelemetry_EmptyTimestamp(t *testing.T) {
 
 // ❌ value_type inválido
 func TestIngestTelemetry_InvalidValueType(t *testing.T) {
-	// TODO: value_type = "banana"
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "2026-03-17T14:30:00Z",
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "analogo",
+			"value": 23.7
+		}
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedError := "value_type deve ser 'analog' ou 'discrete'"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
+	}
 }
                           
 // ❌ payload incompleto (sem sensor)
