@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./src/back
+    container_name: backend
+    ports:
+      - "8080:8080"
+    restart: always
