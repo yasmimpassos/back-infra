@@ -34,6 +34,20 @@ func IngestTelemetry(c *gin.Context) {
 		return
 	}
 
+	if message.Sensor == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "sensor é obrigatório",
+		})
+		return
+	}
+
+	if message.Reading == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "reading é obrigatório",
+		})
+		return
+	}
+
 	if !validateRequiredField(c, message.Sensor.Type, "sensor.type") {
 		return
 	}

@@ -15,6 +15,6 @@ type SensorReading struct {
 type TelemetryMessage struct {
 	Id        int           `json:"device_id"`
 	Timestamp time.Time     `json:"timestamp"`
-	Sensor    SensorInfo    `json:"sensor"`
-	Reading   SensorReading `json:"reading"`
+	Sensor    *SensorInfo    `json:"sensor"`
+	Reading   *SensorReading `json:"reading"`
 }

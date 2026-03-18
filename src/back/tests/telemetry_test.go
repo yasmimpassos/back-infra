@@ -459,12 +459,80 @@ func TestIngestTelemetry_InvalidValueType(t *testing.T) {
                           
 // ❌ payload incompleto (sem sensor)
 func TestIngestTelemetry_MissingSensor(t *testing.T) {
-	// TODO: remover objeto sensor
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "2026-03-17T14:30:00Z",
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedError := "sensor é obrigatório"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
+	}
 }
 
 // ❌ payload incompleto (sem reading)
 func TestIngestTelemetry_MissingReading(t *testing.T) {
-	// TODO: remover objeto reading
-	// TODO: esperar status 400
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "2026-03-17T14:30:00Z",
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		}
+	}`
+
+	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	if err != nil {
+		t.Fatalf("erro ao criar request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	var response map[string]interface{}
+
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("erro ao fazer parse do JSON: %v", err)
+	}
+
+	expectedError := "reading é obrigatório"
+	if response["error"] != expectedError {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
+	}
 }
