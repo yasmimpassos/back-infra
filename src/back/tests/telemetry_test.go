@@ -15,6 +15,44 @@ func setupTestRouter() *gin.Engine {
 	return routes.SetupRouter()
 }
 
+func performRequest(router *gin.Engine, method, path, payload string) (*httptest.ResponseRecorder, map[string]interface{}) {
+	req, _ := http.NewRequest(method, path, bytes.NewBuffer([]byte(payload)))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	return w, response
+}
+
+func assertError(t *testing.T, w *httptest.ResponseRecorder, response map[string]interface{}, expectedStatus int, expectedMessage string) {
+	if w.Code != expectedStatus {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", expectedStatus, w.Code)
+	}
+
+	if response["error"] != expectedMessage {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedMessage, response["error"])
+	}
+}
+
+func assertSuccess(t *testing.T, w *httptest.ResponseRecorder, response map[string]interface{}) {
+	if w.Code != http.StatusOK {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
+	}
+
+	expected := "Telemetry recebida com sucesso"
+	if response["message"] != expected {
+		t.Errorf("mensagem incorreta: esperado=%v, recebido=%v", expected, response["message"])
+	}
+
+	if response["data"] == nil {
+		t.Errorf("campo data não encontrado")
+	}
+}
+
 func TestIngestTelemetry_Success(t *testing.T) {
 	router := setupTestRouter()
 
@@ -31,38 +69,11 @@ func TestIngestTelemetry_Success(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
 
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedMessage := "Telemetry recebida com sucesso"
-	if response["message"] != expectedMessage {
-		t.Errorf("mensagem incorreta: esperado=%v, recebido=%v", expectedMessage, response["message"])
-	}
-
-	if response["data"] == nil {
-		t.Errorf("campo data não encontrado na resposta")
-	}
+	assertSuccess(t, w, response)
 }
 
-// ❌ JSON inválido
 func TestIngestTelemetry_InvalidJSON(t *testing.T) {
 	router := setupTestRouter()
 
@@ -70,34 +81,11 @@ func TestIngestTelemetry_InvalidJSON(t *testing.T) {
 		"device_id":
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
 
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "Payload inválido"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	assertError(t, w, response, http.StatusBadRequest, "Payload inválido")
 }
 
-// ❌ device_id inválido
 func TestIngestTelemetry_InvalidDeviceID(t *testing.T) {
 	router := setupTestRouter()
 
@@ -114,34 +102,11 @@ func TestIngestTelemetry_InvalidDeviceID(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
 
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "device_id é obrigatório"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	assertError(t, w, response, http.StatusBadRequest, "device_id é obrigatório")
 }
 
-// ❌ sensor.type vazio
 func TestIngestTelemetry_EmptySensorType(t *testing.T) {
 	router := setupTestRouter()
 
@@ -158,34 +123,11 @@ func TestIngestTelemetry_EmptySensorType(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
 
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "sensor.type é obrigatório"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	assertError(t, w, response, http.StatusBadRequest, "sensor.type é obrigatório")
 }
 
-// ❌ sensor.unit vazio
 func TestIngestTelemetry_EmptySensorUnit(t *testing.T) {
 	router := setupTestRouter()
 
@@ -202,34 +144,11 @@ func TestIngestTelemetry_EmptySensorUnit(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
 
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "sensor.unit é obrigatório"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	assertError(t, w, response, http.StatusBadRequest, "sensor.unit é obrigatório")
 }
 
-// ❌ reading.value_type vazio
 func TestIngestTelemetry_EmptyValueType(t *testing.T) {
 	router := setupTestRouter()
 
@@ -246,34 +165,11 @@ func TestIngestTelemetry_EmptyValueType(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
 
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "reading.value_type é obrigatório"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	assertError(t, w, response, http.StatusBadRequest, "reading.value_type é obrigatório")
 }
 
-// ❌ timestamp ausente ou inválido
 func TestIngestTelemetry_InvalidTimestampFormat(t *testing.T) {
 	router := setupTestRouter()
 
@@ -290,23 +186,8 @@ func TestIngestTelemetry_InvalidTimestampFormat(t *testing.T) {
 		}
 	}`
 
-	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
-	}
-
-	var response map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &response)
-
-	expected := "Payload inválido"
-	if response["error"] != expected {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
+	assertError(t, w, response, http.StatusBadRequest, "Payload inválido")
 }
 
 func TestIngestTelemetry_InvalidTimestampType(t *testing.T) {
@@ -325,23 +206,8 @@ func TestIngestTelemetry_InvalidTimestampType(t *testing.T) {
 		}
 	}`
 
-	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
-	}
-
-	var response map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &response)
-
-	expected := "Payload inválido"
-	if response["error"] != expected {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
+	assertError(t, w, response, http.StatusBadRequest, "Payload inválido")
 }
 
 func TestIngestTelemetry_MissingTimestamp(t *testing.T) {
@@ -359,23 +225,8 @@ func TestIngestTelemetry_MissingTimestamp(t *testing.T) {
 		}
 	}`
 
-	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
-	}
-
-	var response map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &response)
-
-	expected := "timestamp é obrigatório"
-	if response["error"] != expected {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
+	assertError(t, w, response, http.StatusBadRequest, "timestamp é obrigatório")
 }
 
 func TestIngestTelemetry_EmptyTimestamp(t *testing.T) {
@@ -394,26 +245,10 @@ func TestIngestTelemetry_EmptyTimestamp(t *testing.T) {
 		}
 	}`
 
-	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
-	}
-
-	var response map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &response)
-
-	expected := "Payload inválido"
-	if response["error"] != expected {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
+	assertError(t, w, response, http.StatusBadRequest, "Payload inválido")
 }
 
-// ❌ value_type inválido
 func TestIngestTelemetry_InvalidValueType(t *testing.T) {
 	router := setupTestRouter()
 
@@ -430,34 +265,10 @@ func TestIngestTelemetry_InvalidValueType(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "value_type deve ser 'analog' ou 'discrete'"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
+	assertError(t, w, response, http.StatusBadRequest, "value_type deve ser 'analog' ou 'discrete'")
 }
-                          
-// ❌ payload incompleto (sem sensor)
+
 func TestIngestTelemetry_MissingSensor(t *testing.T) {
 	router := setupTestRouter()
 
@@ -470,34 +281,10 @@ func TestIngestTelemetry_MissingSensor(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "sensor é obrigatório"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
+	assertError(t, w, response, http.StatusBadRequest, "sensor é obrigatório")
 }
 
-// ❌ payload incompleto (sem reading)
 func TestIngestTelemetry_MissingReading(t *testing.T) {
 	router := setupTestRouter()
 
@@ -510,29 +297,6 @@ func TestIngestTelemetry_MissingReading(t *testing.T) {
 		}
 	}`
 
-	req, err := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
-	if err != nil {
-		t.Fatalf("erro ao criar request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
-	}
-
-	var response map[string]interface{}
-
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("erro ao fazer parse do JSON: %v", err)
-	}
-
-	expectedError := "reading é obrigatório"
-	if response["error"] != expectedError {
-		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expectedError, response["error"])
-	}
+	w, response := performRequest(router, "POST", "/telemetry", payload)
+	assertError(t, w, response, http.StatusBadRequest, "reading é obrigatório")
 }
