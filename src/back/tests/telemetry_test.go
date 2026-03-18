@@ -274,9 +274,143 @@ func TestIngestTelemetry_EmptyValueType(t *testing.T) {
 }
 
 // ❌ timestamp ausente ou inválido
-func TestIngestTelemetry_InvalidTimestamp(t *testing.T) {
-	// TODO: timestamp inválido ou omitido
-	// TODO: esperar status 400
+func TestIngestTelemetry_InvalidTimestampFormat(t *testing.T) {
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "data-errada",
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	expected := "Payload inválido"
+	if response["error"] != expected {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
+	}
+}
+
+func TestIngestTelemetry_InvalidTimestampType(t *testing.T) {
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": 123456,
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	expected := "Payload inválido"
+	if response["error"] != expected {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
+	}
+}
+
+func TestIngestTelemetry_MissingTimestamp(t *testing.T) {
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	expected := "timestamp é obrigatório"
+	if response["error"] != expected {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
+	}
+}
+
+func TestIngestTelemetry_EmptyTimestamp(t *testing.T) {
+	router := setupTestRouter()
+
+	payload := `{
+		"device_id": 1,
+		"timestamp": "",
+		"sensor": {
+			"type": "temperature",
+			"unit": "celsius"
+		},
+		"reading": {
+			"value_type": "analog",
+			"value": 23.7
+		}
+	}`
+
+	req, _ := http.NewRequest("POST", "/telemetry", bytes.NewBuffer([]byte(payload)))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusBadRequest, w.Code)
+	}
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	expected := "Payload inválido"
+	if response["error"] != expected {
+		t.Errorf("erro incorreto: esperado=%v, recebido=%v", expected, response["error"])
+	}
 }
 
 // ❌ value_type inválido
@@ -284,7 +418,7 @@ func TestIngestTelemetry_InvalidValueType(t *testing.T) {
 	// TODO: value_type = "banana"
 	// TODO: esperar status 400
 }
-
+                          
 // ❌ payload incompleto (sem sensor)
 func TestIngestTelemetry_MissingSensor(t *testing.T) {
 	// TODO: remover objeto sensor
