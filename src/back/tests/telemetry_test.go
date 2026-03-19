@@ -8,7 +8,14 @@ import (
 	"testing"
 	"github.com/gin-gonic/gin"
 	"backend/routes"
+	"backend/rabbitmq"
 )
+
+func init() {
+	rabbitmq.PublishMessage = func(queueName string, message interface{}) error {
+		return nil
+	}
+}
 
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -43,7 +50,7 @@ func assertSuccess(t *testing.T, w *httptest.ResponseRecorder, response map[stri
 		t.Errorf("status incorreto: esperado=%d, recebido=%d", http.StatusOK, w.Code)
 	}
 
-	expected := "Telemetry recebida com sucesso"
+	expected := "Telemetry enviada com sucesso"
 	if response["message"] != expected {
 		t.Errorf("mensagem incorreta: esperado=%v, recebido=%v", expected, response["message"])
 	}

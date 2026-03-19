@@ -7,7 +7,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func PublishMessage(queueName string, message interface{}) error {
+var PublishMessage = func(queueName string, message interface{}) error {
 	ch := GetChannel()
 
 	_, err := ch.QueueDeclare(
