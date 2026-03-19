@@ -28,3 +28,7 @@ pedi para ele me ajudar e me ensinar a fazer o dockerfile e docker-compose
 
 
 fiquei um pouco confusa sobre o que ter na pasta rabbit mq, e pedi para ele me explicar o que ia conter em cada lugar
+
+
+chat me explicou que era melhor ter um código para abrir a conexão com o rabbit e outro para enviar a fila, para que não fique fechando o canal e a conexão o tempo todo, deixando o processo pesado
+

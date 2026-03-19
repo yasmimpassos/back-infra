@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"backend/models"
+	"backend/rabbitmq"
 )
 
 func validateRequiredField(c *gin.Context, value string, fieldName string) bool {
@@ -74,8 +75,16 @@ func IngestTelemetry(c *gin.Context) {
 		return
 	}
 
+	err = rabbitmq.PublishMessage("telemetry_queue", message)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Erro ao enviar mensagem para fila",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Telemetry recebida com sucesso",
+		"message": "Telemetry enviada com sucesso",
 		"data":    message,
 	})
 }
