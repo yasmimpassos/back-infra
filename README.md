@@ -1,5 +1,8 @@
 # back-infra
 
+README em produção até 23/03 as 9:00, se possível esperar!
+
+
 usei para aprender a verificar o payload
 https://zaahidali.medium.com/mastering-rest-apis-with-the-go-gin-framework-b512ad785fdd
 
@@ -12,6 +15,9 @@ criação da fila com go
 https://www.rabbitmq.com/tutorials/tutorial-one-go
 
 https://geshan.com.np/blog/2024/05/rabbitmq-docker/
+
+k6
+https://medium.com/xp-inc/conhecendo-o-k6-para-testes-de-carga-943a0489de1e
 
 
 uso de ia:
@@ -32,3 +38,9 @@ fiquei um pouco confusa sobre o que ter na pasta rabbit mq, e pedi para ele me e
 
 chat me explicou que era melhor ter um código para abrir a conexão com o rabbit e outro para enviar a fila, para que não fique fechando o canal e a conexão o tempo todo, deixando o processo pesado
 
+
+me ajudou a realizar os testes do consumer
+
+me ajudou a fazer o teste do k6 e entender
+
+me ajudou a limitar o uso da cpu
