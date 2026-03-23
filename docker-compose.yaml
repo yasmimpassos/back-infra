@@ -39,6 +39,7 @@ services:
     container_name: consumer
     depends_on:
       - rabbitmq
+      - postgres
     restart: always
 
 volumes:
