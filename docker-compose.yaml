@@ -33,6 +33,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
+  consumer:
+    build:
+      context: ./src/consumer
+    container_name: consumer
+    depends_on:
+      - rabbitmq
+      - postgres
+    restart: always
+
 volumes:
   rabbitmq_data:
   postgres_data:
