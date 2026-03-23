@@ -7,6 +7,16 @@ import (
 	"consumer/db"
 )
 
+func ProcessTelemetryMessage(body []byte, save func(models.TelemetryMessage) error) error {
+	var data models.TelemetryMessage
+
+	if err := json.Unmarshal(body, &data); err != nil {
+		return err
+	}
+
+	return save(data)
+}
+
 func StartConsumer(queueName string) error {
 	ch := GetChannel()
 
@@ -40,16 +50,9 @@ func StartConsumer(queueName string) error {
 	for msg := range msgs {
 		log.Printf("Mensagem recebida: %s\n", msg.Body)
 
-		var data models.TelemetryMessage
-		err := json.Unmarshal(msg.Body, &data)
+		err := ProcessTelemetryMessage(msg.Body, db.InsertTelemetry)
 		if err != nil {
-			log.Println("Erro ao converter JSON:", err)
-			continue
-		}
-
-		err = db.InsertTelemetry(data)
-		if err != nil {
-			log.Println("Erro ao salvar no banco:", err)
+			log.Println("Erro ao processar mensagem:", err)
 			continue
 		}
 
